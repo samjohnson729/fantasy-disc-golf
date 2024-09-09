@@ -1,5 +1,6 @@
 import json, random
 from io import StringIO
+from datetime import datetime
 
 import requests
 import streamlit as st
@@ -9,37 +10,11 @@ from redis import Redis
 
 class Database(Redis):
 
-    EVENTS = {
-        'Chess.com Invitational': 77775,
-        'WACO Annual Charity Open': 77758,
-        'The Open at Austin': 77759,
-        'Texas State Disc Golf Championships': 77760,
-        'Jonesboro Open': 77761,
-        'Music City Open': 77762,
-        'PDGA Champions Cup': 77099,
-        'Dynamic Discs Open': 77763,
-        'Copenhagen Open': 78193,
-        'OTB Open': 77764,
-        'Portland Open': 77765,
-        'Beaver State Fling': 77766,
-        'Turku Open': 78194,
-        'The Preserve Championship': 78271,
-        'Swedish Open': 78195,
-        'Trubank Des Moines Challenge': 77768,
-        'Krokhol Open': 78196,
-        'European Open': 77750,
-        'European Disc Golf Festival': 78197,
-        'Ledgestone Open': 77769,
-        'LWS Open at Idlewild': 77771,
-        'PDGA Professional Disc Golf World Championships': 71315,
-        'Great Lakes Open': 77772,
-        'Green Mountain Championship': 82419,
-        'MVP Open x OTB': 77773,
-        'DGPT Championship': 77774
-    }
-
     def __init__(self):
         super().__init__(**st.secrets['redis'])
+
+        with open('./data/events.json') as f:
+            self.EVENTS = json.load(f)
 
     @st.cache_data
     def get_players(_self, num_players:int=100):
@@ -49,6 +24,7 @@ class Database(Redis):
             response = requests.get(f'https://www.pdga.com/players/stats?page={page}&order=player_Rating&sort=desc')
             df = pd.read_html(StringIO(response.text))[0]
             players = pd.concat([players, df], ignore_index=True)
+            players.drop_duplicates('PDGA #', keep='first', inplace=True)
             page += 1
 
         players = players[['Name', 'PDGA #', 'Rating', 'Events', 'Points', 'Cash']].copy()
@@ -58,7 +34,7 @@ class Database(Redis):
         drafted_players_ids = []
         for key in self.scan_iter(f'team:{league_name}:{team_key}'):
             team = json.loads(self.get(key))
-            drafted_players_ids += team['Players']
+            drafted_players_ids += team['players']
 
         all_players = self.get_players()
         drafted_players = all_players[all_players['PDGA #'].apply(lambda x: str(x) in drafted_players_ids)].copy()
@@ -70,29 +46,104 @@ class Database(Redis):
         undrafted_players = all_players[all_players['PDGA #'].apply(lambda x: str(x) not in drafted_players['PDGA #'].astype(str).values)].copy()
         return undrafted_players
 
-    def get_leagues(self):
-        return [json.loads(self.get(key)) for key in self.scan_iter(f'league:*')]
+    def list_leagues(self):
+        leagues = []
+        for league_key in self.scan_iter(f'league:*'):
+            league = self.get_json(league_key)
+            if st.session_state.username in league['usernames']:
+                leagues.append(league)
+        return leagues
     
-    def get_teams(self, league_name:str):
-        return [json.loads(self.get(key)) for key in self.scan_iter(f'team:{league_name}:*')]
+    def get_league(self, league_name:str):
+        if league_name is not None:
+            return self.get_json(f'league:{league_name}')
+    
+    def save_league(self, league:dict):
+        key = f"league:{league['league-name']}"
+        self.set(key, json.dumps(league))
 
-    def get_draft_order(self, league_name:str):
-        league = json.loads(self.get(f'league:{league_name}'))
-        teams = self.get_teams(league_name)
+    def delete_league(self, league_name:str):
+        self.delete(f'league:{league_name}')
+        for key in self.scan_iter(f'team:{league_name}:*'):
+            self.delete(key)
+
+    def list_teams(self, league_name:str):
+        teams = []
+        for team_key in self.scan_iter(f'team:{league_name}:*'):
+            teams.append(self.get_json(team_key))
+        return teams
+
+    def get_team(self, league_name:str, username:str):
+        return self.get_json(f'team:{league_name}:{username}')
+
+    def save_team(self, league_name:str, team:dict):
+        key = f"team:{league_name}:{team['username']}"
+        self.set(key, json.dumps(team))
+
+    def delete_team(self, league_name:str, username:str):
+        self.delete(f'team:{league_name}:{username}')
+
+    def get_drafting_team(self, league_name:str):
+        league = self.get_league(league_name)
+        teams = self.list_teams(league_name)
         random.seed(729)
         random.shuffle(teams)
 
         reverse = False
         draft_order = []
-        for _ in range(league['Roster Size']):
+        for _ in range(league['roster-size']):
             if reverse: draft_order += list(reversed(teams))
             else: draft_order += teams
             reverse = not reverse
 
-        return draft_order
+        num_picks = len(self.get_drafted_players(league_name))
+        if num_picks < len(draft_order):
+            return draft_order[num_picks]
     
-    def get_event_results(self, event_name:int, league_name:str):
-        event_id = self.EVENTS.get(event_name)
+    def get_matchups(self, league_name:str, event_id:int):
+
+        def get_pairings(a):
+            if len(a) == 2: return [[tuple(a)]]
+            
+            pairings = []
+            for i in range(1, len(a)):
+                pair = [(a[0], a[i])]
+                remainder = [j for j in a if j not in [a[0], a[i]]]
+                for sub_pairing in get_pairings(remainder):
+                    pairings.append(pair + sub_pairing)
+            return pairings
+        
+        # get initial matchups
+        teams = self.list_teams(league_name)
+        index = list(self.EVENTS).index(event_id)
+        matchup_list, used_pairs = [], []
+        for pairs in get_pairings(teams):
+            for pair in pairs:
+                if pair in used_pairs: break
+            else:
+                matchup_list.append(pairs)
+                used_pairs += pairs
+
+        # shuffle matchups and extend for full year
+        random.seed(729)
+        random.shuffle(matchup_list)
+        while len(matchup_list) < len(self.EVENTS):
+            matchup_list += matchup_list
+
+        # return the current matchups
+        return matchup_list[index]
+
+    def get_current_event_id(self):
+        for event_id, event in self.EVENTS.items():
+            now = datetime.now()
+            end_date = datetime.strptime(event['end-date'], '%m-%d-%Y')
+            if (now - end_date).days < 2:
+                return event_id
+
+        st.warning('No upcoming or current events found')
+
+    @st.cache_data(ttl=300)
+    def get_event_results(_self, event_id:int, league_name:str):
         event_dict = requests.get(f'https://www.pdga.com/apps/tournament/live-api/live_results_fetch_event?TournID={event_id}').json()['data']
 
         results = {}
@@ -121,24 +172,25 @@ class Database(Redis):
                         pass
 
         results = pd.DataFrame.from_dict(results, orient='index')
-        results['Points'] = results.apply(lambda x: self.calculate_score(league_name, x), axis=1)
+        results.index = results.index.astype(str)
+        results['Points'] = results.apply(lambda x: _self.calculate_score(league_name, x), axis=1)
 
         return results
 
     def calculate_score(self, league_name:str, row):
         league = json.loads(self.get(f'league:{league_name}'))
-        hole_score_dict = league['Scoring']['hole-score']
-        tournament_position_dict = league['Scoring']['tournament-position']
+        hole_score_dict = league['scoring']['hole-score']
+        tournament_position_dict = league['scoring']['tournament-position']
 
         output = sum([
             hole_score_dict['ace'] * row['Ace'],
-            hole_score_dict['-3'] * row['Albatross'],
-            hole_score_dict['-2'] * row['Eagle'],
-            hole_score_dict['-1'] * row['Birdie'],
-            hole_score_dict['0'] * row['Par'],
-            hole_score_dict['1'] * row['Bogey'],
-            hole_score_dict['2'] * row['Double Bogey'],
-            hole_score_dict['3'] * row['Triple+ Bogey']
+            hole_score_dict['albatross'] * row['Albatross'],
+            hole_score_dict['eagle'] * row['Eagle'],
+            hole_score_dict['birdie'] * row['Birdie'],
+            hole_score_dict['par'] * row['Par'],
+            hole_score_dict['bogey'] * row['Bogey'],
+            hole_score_dict['double bogey'] * row['Double Bogey'],
+            hole_score_dict['triple+ bogey'] * row['Triple+ Bogey']
         ])
 
         for key, value in tournament_position_dict.items():
@@ -147,3 +199,6 @@ class Database(Redis):
                 break
 
         return output
+
+    def get_json(self, key:str):
+        return json.loads(self.get(key))
