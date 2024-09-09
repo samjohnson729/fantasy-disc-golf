@@ -1,107 +1,133 @@
 {
     "77775": {
         "name": "Chess.com Invitational",
+        "start-date": "2-23-2024",
         "end-date": "2-25-2024"
 
     },
     "77758": {
         "name": "WACO Annual Charity Open",
+        "start-date": "3-7-2024",
         "end-date": "3-10-2024"
     },
     "77759": {
         "name": "The Open at Austin",
+        "start-date": "3-15-2024",
         "end-date": "3-17-2024"
     },
     "77760": {
         "name": "Texas State Disc Golf Championships",
+        "start-date": "3-29-2024",
         "end-date": "3-31-2024"
     },
     "77761": {
         "name": "Jonesboro Open",
+        "start-date": "4-12-2024",
         "end-date": "4-14-2024"
     },
     "77762": {
         "name": "Music City Open",
+        "start-date": "4-19-2024",
         "end-date": "4-21-2024"
     },
     "77099": {
         "name": "PDGA Champions Cup",
+        "start-date": "4-25-2024",
         "end-date": "4-28-2024"
     },
     "77763": {
         "name": "Dynamic Discs Open",
+        "start-date": "5-3-2024",
         "end-date": "5-5-2024"
     },
     "78193": {
         "name": "Copenhagen Open",
+        "start-date": "5-10-2024",
         "end-date": "5-12-2024"
     },
     "77764": {
         "name": "OTB Open",
+        "start-date": "5-17-2024",
         "end-date": "5-19-2024"
     },
     "77765": {
         "name": "Portland Open",
+        "start-date": "5-30-2024",
         "end-date": "6-2-2024"
     },
     "77766": {
         "name": "Beaver State Fling",
+        "start-date": "6-7-2024",
         "end-date": "6-9-2024"
     },
     "78194": {
         "name": "Turku Open",
+        "start-date": "6-14-2024",
         "end-date": "6-16-2024"
     },
     "78271": {
         "name": "The Preserve Championship",
+        "start-date": "6-21-2024",
         "end-date": "6-23-2024"
     },
     "78195": {
         "name": "Swedish Open",
+        "start-date": "6-28-2024",
         "end-date": "6-30-2024"
     },
     "77768": {
         "name": "Trubank Des Moines Challenge",
+        "start-date": "7-5-2024",
         "end-date": "7-7-2024"
     },
     "78196": {
         "name": "Krokhol Open",
+        "start-date": "7-12-2024",
         "end-date": "7-14-2024"
     },
     "77750": {
         "name": "European Open",
+        "start-date": "7-18-2024",
         "end-date": "7-21-2024"
     },
     "78197": {
         "name": "European Disc Golf Festival",
+        "start-date": "7-26-2024",
         "end-date": "7-28-2024"
     },
     "77769": {
         "name": "Ledgestone Open",
+        "start-date": "8-1-2024",
         "end-date": "8-4-2024"
     },
     "77771": {
         "name": "LWS Open at Idlewild",
+        "start-date": "8-9-2024",
         "end-date": "8-11-2024"
     },
     "71315": {
         "name": "PDGA Professional Disc Golf World Championships",
+        "start-date": "8-21-2024",
         "end-date": "8-25-2024"
     },
     "77772": {
         "name": "Great Lakes Open",
+        "start-date": "9-5-2024",
         "end-date": "9-8-2024"
     },
     "82419": {
         "name": "Green Mountain Championship",
+        "start-date": "9-19-2024",
         "end-date": "9-22-2024"
     },
     "77773": {
         "name": "MVP Open x OTB",
+        "start-date": "9-26-2024",
         "end-date": "9-29-2024"
     },
     "77774": {
         "name": "DGPT Championship",
+        "start-date": "10-17-2024",
         "end-date": "10-20-2024"
     }
 }

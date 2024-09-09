@@ -3,7 +3,9 @@ import pandas as pd
 from database import Database
 from navigation import make_sidebar
 import matchup
+import utils
 
+utils.lock_in_teams()
 make_sidebar()
 database = Database()
 
@@ -41,7 +43,7 @@ if league is not None:
         bench_players = my_players[my_players['PDGA #'].apply(lambda x: str(x) in team['bench'])].copy()
 
         st.subheader('Active')
-        active_players.insert(0, 'Move to Bench', False)
+        active_players.insert(0, 'Bench', False)
         active_players.insert(0, 'Drop', False)
         event = st.data_editor(
             data=active_players,
@@ -53,14 +55,14 @@ if league is not None:
             team['players'].remove(pdga_num)
             database.save_team(league_name, team)
             st.rerun()
-        if event['Move to Bench'].any():
-            pdga_num = str(event[event['Move to Bench']].iloc[0]['PDGA #'])
+        if event['Bench'].any():
+            pdga_num = str(event[event['Bench']].iloc[0]['PDGA #'])
             team['bench'].append(pdga_num)
             database.save_team(league_name, team)
             st.rerun()
 
         st.subheader('Bench')
-        bench_players.insert(0, 'Move to Active', False)
+        bench_players.insert(0, 'Activate', False)
         bench_players.insert(0, 'Drop', False)
         event = st.data_editor(
             data=bench_players,
@@ -73,9 +75,9 @@ if league is not None:
             team['bench'].remove(pdga_num)
             database.save_team(league_name, team)
             st.rerun()
-        if event['Move to Active'].any():
+        if event['Activate'].any():
             if len(active_players) < league['roster-size'] - league['bench-size']:
-                pdga_num = str(event[event['Move to Active']].iloc[0]['PDGA #'])
+                pdga_num = str(event[event['Activate']].iloc[0]['PDGA #'])
                 team['bench'].remove(pdga_num)
                 database.save_team(league_name, team)
                 st.rerun()

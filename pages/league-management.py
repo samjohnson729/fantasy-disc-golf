@@ -80,7 +80,7 @@ with tabs[0]:
             database.save_league(league)
 
             # create team record
-            team = {'username': st.session_state.username, 'players': [], 'bench': []}
+            team = {'username': st.session_state.username, 'players': [], 'bench': [], 'events': {}}
             database.save_team(league_name, team)
             st.rerun()
 
@@ -150,7 +150,7 @@ with tabs[3]:
                         database.save_league(league)
 
                         # creating team record
-                        team = {'username': st.session_state.username, 'players': [], 'bench': []}
+                        team = {'username': st.session_state.username, 'players': [], 'bench': [], 'events': {}}
                         database.save_team(league_name, team)
                         st.success('Success!')
                         time.sleep(.5)
